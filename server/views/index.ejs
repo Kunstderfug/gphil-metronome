@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>G-Phil metronome</title>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+
+<body>
+  <main id="app">
+    <header>
+      <h1>G-Phil Metronome</h1>
+      <p>Upload and process opus files</p>
+    </header>
+
+    <section id="opus">
+      <h2>File Upload</h2>
+
+      <div id="selection-mode">
+        <label>
+          <input type="radio" name="selection-mode" value="folder" checked>
+          Select folder containing opus files
+        </label>
+        <label>
+          <input type="radio" name="selection-mode" value="files">
+          Select individual opus files
+        </label>
+      </div>
+
+      <div id="file-input-container">
+        <label for="file-input" id="file-input-label">Select folder containing opus files:</label>
+        <input type="file" webkitdirectory multiple id="file-input" name="file_input" accept=".opus">
+        <p id="selection-note"><small>Note: This will select all files in the chosen folder and its subfolders</small></p>
+      </div>
+    </section>
+
+    <section id="actions">
+      <!-- <canvas id="metronome_canvas"></canvas> -->
+      <!-- <button type="button" id="parse_opus_files">parse_opus_file</button> -->
+      <button type="button" id="write_json_files">Write files to directory</button>
+
+      <div id="progress-container" style="display: none;">
+        <div id="progress-bar">
+          <div id="progress-fill"></div>
+        </div>
+        <div id="progress-text">Processing files...</div>
+      </div>
+
+      <div id="status-container">
+        <div id="file-status"></div>
+        <div id="results-summary"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="ogg-opus-decoder.min.js"></script>
+  <script>
+    const decoder = new window["ogg-opus-decoder"].OggOpusDecoderWebWorker()
+  </script>
+  <script type="module" src="/main.js"></script>
+</body>
+
+</html>
