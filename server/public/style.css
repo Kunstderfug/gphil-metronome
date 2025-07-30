@@ -1,0 +1,423 @@
+:root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: light dark;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #242424;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+    font-weight: 500;
+    color: #646cff;
+    text-decoration: inherit;
+}
+a:hover {
+    color: #535bf2;
+}
+
+body {
+    margin: 0;
+    padding: 1rem;
+    display: flex;
+    place-items: center;
+    min-width: 320px;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+h1 {
+    font-size: 3.2em;
+    line-height: 1.1;
+}
+
+#app {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.card {
+    padding: 2rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.read-the-docs {
+    color: #888;
+}
+
+button {
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 0.8rem 1.5rem;
+    margin: 1rem 0.5rem;
+    font-size: 1em;
+    font-weight: 500;
+    font-family: inherit;
+    background-color: #1a1a1a;
+    cursor: pointer;
+    transition: border-color 0.25s;
+}
+button:hover {
+    border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+    outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        color: #213547;
+        background-color: #ffffff;
+    }
+    a:hover {
+        color: #747bff;
+    }
+    button {
+        background-color: #f9f9f9;
+    }
+}
+
+canvas {
+    display: block;
+    margin: 2rem auto;
+    padding: 4rem 1rem 1rem 1rem;
+    border-radius: 300px;
+    box-shadow: 0 0 2em #00000022;
+    will-change: filter;
+    transition: filter 300ms;
+    width: 200px;
+    height: 200px;
+}
+
+.beat-number {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    text-align: center;
+    font-size: 3.2em;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+#opus {
+    padding: 2rem;
+    margin: 2rem 0;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#file-input {
+    margin: 1rem 0;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: inherit;
+    font-family: inherit;
+}
+
+#file-input:focus {
+    outline: 2px solid #646cff;
+    outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+    #app {
+        padding: 2rem 1rem;
+    }
+
+    body {
+        padding: 0.5rem;
+    }
+
+    button {
+        padding: 0.7rem 1.2rem;
+        margin: 0.5rem 0.25rem;
+        font-size: 0.9em;
+    }
+
+    #opus {
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+}
+
+header {
+    padding: 2rem 0 3rem 0;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+header h1 {
+    margin: 0 0 1rem 0;
+    font-size: 2.5em;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+header p {
+    margin: 0;
+    font-size: 1.1em;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+section {
+    padding: 2rem;
+    margin: 2rem 0;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+section h2 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5em;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#actions {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+@media (prefers-color-scheme: light) {
+    header {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    header h1 {
+        color: #213547;
+    }
+
+    header p {
+        color: #666;
+    }
+
+    section {
+        background-color: rgba(0, 0, 0, 0.02);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    section h2 {
+        color: #213547;
+    }
+
+    label {
+        color: #333;
+    }
+}
+
+#selection-mode {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#selection-mode label {
+    display: flex;
+    align-items: center;
+    margin: 0.5rem 0;
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+#selection-mode label:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+#selection-mode input[type="radio"] {
+    margin-right: 0.75rem;
+    cursor: pointer;
+}
+
+#file-input-container {
+    margin-top: 1rem;
+}
+
+@media (prefers-color-scheme: light) {
+    #selection-mode {
+        background-color: rgba(0, 0, 0, 0.02);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    #selection-mode label:hover {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+}
+
+#progress-container {
+    margin: 2rem 0;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+#progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #646cff, #535bf2);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 10px;
+}
+
+#progress-text {
+    text-align: center;
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0.5rem 0;
+}
+
+#status-container {
+    margin-top: 2rem;
+}
+
+#file-status {
+    font-family: "Courier New", monospace;
+    font-size: 0.85em;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: none;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    margin: 0.5rem 0;
+    padding: 0.25rem 0;
+}
+
+.status-icon {
+    margin-right: 0.75rem;
+    font-weight: bold;
+    min-width: 16px;
+}
+
+.status-success {
+    color: #4ade80;
+}
+
+.status-error {
+    color: #ef4444;
+}
+
+.status-processing {
+    color: #fbbf24;
+}
+
+#results-summary {
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    text-align: center;
+    font-weight: 500;
+    display: none;
+}
+
+.summary-success {
+    background-color: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    color: #4ade80;
+}
+
+.summary-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.summary-partial {
+    background-color: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+}
+
+@media (prefers-color-scheme: light) {
+    #progress-container {
+        background-color: rgba(0, 0, 0, 0.02);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    #progress-bar {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    #progress-text {
+        color: #666;
+    }
+
+    #file-status {
+        background-color: rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .status-success {
+        color: #16a34a;
+    }
+
+    .status-error {
+        color: #dc2626;
+    }
+
+    .status-processing {
+        color: #d97706;
+    }
+
+    .summary-success {
+        background-color: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: #16a34a;
+    }
+
+    .summary-error {
+        background-color: rgba(220, 38, 38, 0.1);
+        border: 1px solid rgba(220, 38, 38, 0.3);
+        color: #dc2626;
+    }
+
+    .summary-partial {
+        background-color: rgba(217, 119, 6, 0.1);
+        border: 1px solid rgba(217, 119, 6, 0.3);
+        color: #d97706;
+    }
+}
