@@ -297,7 +297,7 @@ function testParseFilePath() {
 }
 
 // Uncomment the line below to run tests
-testParseFilePath();
+// testParseFilePath();
 
 // Visual feedback functions
 function initializeFeedbackElements() {
