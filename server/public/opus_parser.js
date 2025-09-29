@@ -61,7 +61,15 @@ export async function handleFileInput(fileSelectionEvent) {
         await fetch("/uploads", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(file),
+          body: JSON.stringify({
+            folder: file.folder,
+            filename: file.filename,
+            fullPath: file.fullPath,
+            composer: file.composer,
+            concerto: file.concerto,
+            movement: file.movement,
+            data: file.data,
+          }),
         });
         updateStatus(`✓ Uploaded: ${file.filename}`, "success");
         successCount++;
@@ -81,37 +89,39 @@ export async function handleFileInput(fileSelectionEvent) {
   }
 }
 
-function getFolderName(filename) {
+function parseFilePath(filename) {
   const parts = filename.split("_");
 
   if (parts.length < 3) {
-    // Not enough parts to parse, return original filename without extension
-    console.log(`Folder name for "${filename}": "${filename}" (insufficient parts)`);
-    return filename;
+    // Not enough parts to parse, use fallback structure
+    console.log(`Insufficient parts in "${filename}", using fallback structure`);
+    return {
+      composer: "UNKNOWN",
+      concerto: "UNKNOWN",
+      movement: "1",
+      directoryPath: "UNKNOWN_UNKNOWN/1/CLICKDATA/",
+      fullPath: `UNKNOWN_UNKNOWN/1/CLICKDATA/${filename}.json`,
+    };
   }
 
-  // Remove the last part (tempo - always a number)
-  parts.pop();
+  const composer = parts[0];
+  const concerto = parts[1];
+  const movement = parts[2];
 
-  // If the last remaining part is a number (optional section index), remove it too
-  if (parts.length > 0 && !isNaN(parseInt(parts[parts.length - 1])) && parts[parts.length - 1] !== "") {
-    parts.pop();
-  }
+  const composerConcerto = `${composer}_${concerto}`;
+  const directoryPath = `${composerConcerto}/${movement}/CLICKDATA/`;
+  const fullPath = `${directoryPath}${filename}.json`;
 
-  // Remove the section name (should be letters/text, not a number)
-  if (parts.length > 0 && isNaN(parseInt(parts[parts.length - 1]))) {
-    parts.pop();
-  }
+  console.log(`Parsed "${filename}": composer="${composer}", concerto="${concerto}", movement="${movement}"`);
+  console.log(`Full path: "${fullPath}"`);
 
-  // Remove the movement/track number (should be a number)
-  if (parts.length > 0 && !isNaN(parseInt(parts[parts.length - 1])) && parts[parts.length - 1] !== "") {
-    parts.pop();
-  }
-
-  // The remaining parts form the PATH
-  const folderName = parts.join("_");
-  console.log(`Folder name for "${filename}": "${folderName}"`);
-  return folderName || filename; // Fallback to original filename if parsing fails
+  return {
+    composer,
+    concerto,
+    movement,
+    directoryPath,
+    fullPath,
+  };
 }
 
 function clearFileArray() {
@@ -121,10 +131,14 @@ function clearFileArray() {
 export async function createParsedFiles() {
   const parsedFiles = [];
   for await (const file of fileArray) {
-    const folder = getFolderName(file.fileName);
+    const pathInfo = parseFilePath(file.fileName);
     parsedFiles.push({
-      folder: folder,
+      folder: pathInfo.directoryPath,
       filename: file.fileName,
+      fullPath: pathInfo.fullPath,
+      composer: pathInfo.composer,
+      concerto: pathInfo.concerto,
+      movement: pathInfo.movement,
       data: await parseOpusFile(file.data),
     });
     // await createJsonOutput(clickTimes.fileName, clickTimesArray)
@@ -230,13 +244,18 @@ async function createJsonOutput(filename, clickTimes) {
   );
   console.log(fileContents);
 
+  // Parse the filename to get the directory structure
+  const pathInfo = parseFilePath(filename);
+
   // Stolen from https://stackoverflow.com/a/35251739
   const blob = new Blob([JSON.stringify(fileContents)], {
     type: "application/json",
   });
   const dlink = document.createElement("a");
-  const fileName1 = filename.substring(0, filename.lastIndexOf("."));
-  dlink.download = fileName1 + ".json";
+
+  // Use the structured filename format: composer_concerto_movement_CLICKDATA_originalname.json
+  const structuredFilename = `${pathInfo.composer}_${pathInfo.concerto}_${pathInfo.movement}_CLICKDATA_${filename}.json`;
+  dlink.download = structuredFilename;
   dlink.href = window.URL.createObjectURL(blob);
   dlink.onclick = () => {
     // revokeObjectURL needs a delay to work properly
@@ -248,33 +267,37 @@ async function createJsonOutput(filename, clickTimes) {
   dlink.remove();
 }
 
-// Test function to verify getFolderName works correctly
-function testGetFolderName() {
-  console.log("Testing getFolderName function:");
+// Test function to verify parseFilePath works correctly
+function testParseFilePath() {
+  console.log("Testing parseFilePath function:");
 
-  // Test case 1: COUPERIN_TICTOC_1_EXPO_1_100
-  const test1 = getFolderName("COUPERIN_TICTOC_1_EXPO_1_100");
-  console.log(`Test 1 - Expected: "COUPERIN_TICTOC", Got: "${test1}"`);
+  // Test case 1: RACHMANINOFF_4_2_CODA_50
+  const test1 = parseFilePath("RACHMANINOFF_4_2_CODA_50");
+  console.log(`Test 1 - Expected path: "RACHMANINOFF_4/2/CLICKDATA/RACHMANINOFF_4_2_CODA_50.json"`);
+  console.log(`Got: "${test1.fullPath}"`);
 
-  // Test case 2: COUPERIN_TICTOC_1_EP_100
-  const test2 = getFolderName("COUPERIN_TICTOC_1_EP_100");
-  console.log(`Test 2 - Expected: "COUPERIN_TICTOC", Got: "${test2}"`);
+  // Test case 2: COUPERIN_TICTOC_1_EXPO_100
+  const test2 = parseFilePath("COUPERIN_TICTOC_1_EXPO_100");
+  console.log(`Test 2 - Expected path: "COUPERIN_TICTOC/1/CLICKDATA/COUPERIN_TICTOC_1_EXPO_100.json"`);
+  console.log(`Got: "${test2.fullPath}"`);
 
-  // Test case 3: PATH_INDEX_SECTIONNAME_TEMPO
-  const test3 = getFolderName("BACH_INVENTION_2_DEV_120");
-  console.log(`Test 3 - Expected: "BACH_INVENTION", Got: "${test3}"`);
+  // Test case 3: BACH_F_3_DEV_120 (concerto name "F")
+  const test3 = parseFilePath("BACH_F_3_DEV_120");
+  console.log(`Test 3 - Expected path: "BACH_F/3/CLICKDATA/BACH_F_3_DEV_120.json"`);
+  console.log(`Got: "${test3.fullPath}"`);
 
-  // Test case 4: PATH_INDEX_SECTIONNAME_INDEX_TEMPO
-  const test4 = getFolderName("MOZART_SONATA_1_EXPO_2_140");
-  console.log(`Test 4 - Expected: "MOZART_SONATA", Got: "${test4}"`);
+  // Test case 4: MOZART_Rhapsody_1_EXPO_140 (concerto name "Rhapsody")
+  const test4 = parseFilePath("MOZART_Rhapsody_1_EXPO_140");
+  console.log(`Test 4 - Expected path: "MOZART_Rhapsody/1/CLICKDATA/MOZART_Rhapsody_1_EXPO_140.json"`);
+  console.log(`Got: "${test4.fullPath}"`);
 
-  // Test case 5: Complex path with multiple underscores
-  const test5 = getFolderName("COMPLEX_PATH_NAME_3_SECTION_180");
-  console.log(`Test 5 - Expected: "COMPLEX_PATH_NAME", Got: "${test5}"`);
+  // Test case 5: Insufficient parts
+  const test5 = parseFilePath("SHORT_FILE");
+  console.log(`Test 5 - Expected fallback, Got: "${test5.fullPath}"`);
 }
 
 // Uncomment the line below to run tests
-// testGetFolderName();
+testParseFilePath();
 
 // Visual feedback functions
 function initializeFeedbackElements() {
