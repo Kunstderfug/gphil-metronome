@@ -109,7 +109,7 @@ function parseFilePath(filename) {
   const movement = parts[2];
 
   const composerConcerto = `${composer}_${concerto}`;
-  const directoryPath = `${composerConcerto}/${movement}/CLICKDATA/`;
+  const directoryPath = `${composerConcerto}/${movement}/`;
   const fullPath = `${directoryPath}${filename}.json`;
 
   console.log(`Parsed "${filename}": composer="${composer}", concerto="${concerto}", movement="${movement}"`);
