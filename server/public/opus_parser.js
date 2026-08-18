@@ -58,6 +58,7 @@ export async function handleFileInput(fileSelectionEvent) {
     for await (const file of parsed) {
       console.log(file.data);
       try {
+        // Upload regular data
         await fetch("/uploads", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -72,6 +73,34 @@ export async function handleFileInput(fileSelectionEvent) {
           }),
         });
         updateStatus(`✓ Uploaded: ${file.filename}`, "success");
+
+        // Upload debug data
+        if (file.debugInfo) {
+          try {
+            const response = await fetch("/uploads-debug", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                folder: file.folder,
+                filename: file.filename,
+                fullPath: file.fullPath,
+                composer: file.composer,
+                concerto: file.concerto,
+                movement: file.movement,
+                debugInfo: file.debugInfo,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+            }
+
+            updateStatus(`✓ Uploaded debug: ${file.filename}_debug`, "success");
+          } catch (debugError) {
+            console.error("Debug upload failed:", debugError);
+            updateStatus(`✗ Debug upload failed: ${file.filename}_debug - ${debugError.message}`, "error");
+          }
+        }
         successCount++;
       } catch (error) {
         updateStatus(`✗ Failed to upload: ${file.filename} - ${error.message}`, "error");
@@ -129,9 +158,17 @@ function clearFileArray() {
 }
 
 export async function createParsedFiles() {
+  //create a for loop to iterate through the fileArray array and create a json file for each object
   const parsedFiles = [];
   for await (const file of fileArray) {
     const pathInfo = parseFilePath(file.fileName);
+    const result = await parseOpusFile(file.data);
+    console.log("parseOpusFile result for", file.fileName, ":", {
+      hasClicks: !!result.clicks,
+      clicksLength: result.clicks?.length,
+      hasDebugInfo: !!result.debugInfo,
+      debugInfoAnalysisLength: result.debugInfo?.analysis?.length,
+    });
     parsedFiles.push({
       folder: pathInfo.directoryPath,
       filename: file.fileName,
@@ -139,10 +176,12 @@ export async function createParsedFiles() {
       composer: pathInfo.composer,
       concerto: pathInfo.concerto,
       movement: pathInfo.movement,
-      data: await parseOpusFile(file.data),
+      data: result.clicks,
+      debugInfo: result.debugInfo,
     });
     // await createJsonOutput(clickTimes.fileName, clickTimesArray)
   }
+  console.log(parsedFiles);
   return parsedFiles;
 }
 
@@ -151,10 +190,30 @@ async function parseOpusFile(opusFileData) {
   await opusDecoder.ready;
 
   let clickTimes = [];
+  let debugAnalysis = [];
 
   const { sampleRate, channelData } = await opusDecoder.decodeFile(new Uint8Array(opusFileData));
 
+  console.log("=== parseOpusFile Analysis ===");
+  console.log("Sample Rate:", sampleRate);
+  console.log("Channel Data Length:", channelData.length);
+  console.log("Left Channel Length:", channelData[0].length);
+  console.log("First 20 samples:", channelData[0].slice(0, 20));
+
+  // Collect every 5000th sample throughout the entire file
+  const every5000thSample = [];
+  for (let i = 0; i < channelData[0].length; i += 5000) {
+    every5000thSample.push({
+      sampleNumber: i,
+      value: channelData[0][i],
+      timeMs: Math.round((i * 1000) / sampleRate),
+      timeSeconds: (i / sampleRate).toFixed(3),
+    });
+  }
+  console.log("Collected", every5000thSample.length, "samples (every 5000th sample)");
+
   const clickTimeThreshold = sampleRate / 5;
+  console.log("Click Time Threshold (samples):", clickTimeThreshold);
   const leftChannel = channelData[0];
   let beatNumber = 1;
 
@@ -169,25 +228,74 @@ async function parseOpusFile(opusFileData) {
 
     // The local maximum of the waveform is at index i.
     if (clickTimes.length == 0 || i - clickTimes[clickTimes.length - 1].sampleNumber > clickTimeThreshold) {
+      console.log(`Sample ${i}: Value = ${leftChannel[i].toFixed(6)}`);
+
+      const isDownbeat = leftChannel[i] > 0.4;
+      const isBeat = leftChannel[i] > 0.07;
+      let samplesSinceLastClick;
+
       // 0.4 volume is a good volume threshold for downbeats.
-      if (leftChannel[i] > 0.4) {
+      if (isDownbeat) {
         beatNumber = 1;
+        console.log(`  -> Downbeat detected! Beat reset to ${beatNumber}`);
         // 0.2 volume is a good volume threshold for other beats.
-      } else if (leftChannel[i] > 0.07) {
+      } else if (isBeat) {
         beatNumber++;
+        console.log(`  -> Beat detected! Beat incremented to ${beatNumber}`);
       }
 
-      clickTimes.push({
+      const timeMs = Math.round((i * 1000) / sampleRate);
+      console.log(`  -> Time: ${timeMs}ms (${(i / sampleRate).toFixed(3)}s)`);
+
+      if (clickTimes.length > 0) {
+        samplesSinceLastClick = i - clickTimes[clickTimes.length - 1].sampleNumber;
+        console.log(`  -> Samples since last click: ${samplesSinceLastClick}`);
+      }
+
+      const clickData = {
         sampleNumber: i,
-        time: Math.round((i * 1000) / sampleRate), // Milliseconds.
+        time: timeMs,
         beat: beatNumber,
+      };
+
+      debugAnalysis.push({
+        sampleNumber: i,
+        value: leftChannel[i],
+        isDownbeat,
+        isBeat,
+        timeMs,
+        timeSeconds: i / sampleRate,
+        samplesSinceLastClick,
+        beatNumber,
       });
+
+      clickTimes.push(clickData);
     }
   }
 
-  // console.log('click times: ' + JSON.stringify(clickTimes))
+  const debugInfo = {
+    sampleRate,
+    channelDataLength: channelData.length,
+    leftChannelLength: channelData[0].length,
+    firstSamples: Array.from(channelData[0].slice(0, 20)),
+    every5000thSample,
+    clickTimeThreshold,
+    analysis: debugAnalysis,
+    totalClicks: clickTimes.length,
+    clickTimes,
+  };
+
+  console.log(`\nTotal clicks detected: ${clickTimes.length}`);
+  console.log("All click times:", clickTimes);
+  console.log("Click times summary:");
+  clickTimes.forEach((click, index) => {
+    console.log(`  ${index + 1}: Sample ${click.sampleNumber}, Time ${click.time}ms, Beat ${click.beat}`);
+  });
+  console.log("=== End parseOpusFile Analysis ===\n");
+  console.log("parseOpusFile returning debugInfo with", debugInfo.analysis.length, "analysis entries");
+
   opusDecoder.reset();
-  return clickTimes;
+  return { clicks: clickTimes, debugInfo };
 }
 
 export async function writeJsonFiles() {
@@ -202,69 +310,71 @@ export async function writeJsonFiles() {
   totalFiles = fileArray.length;
   showProgress(true);
   showFileStatus(true);
-  updateStatus(`Starting to create ${totalFiles} JSON files...`, "processing");
+  updateStatus(`Starting to upload ${totalFiles} JSON files to server...`, "processing");
 
   try {
     // Get parsed files first since parsedFiles variable is not in scope
     const parsed = await createParsedFiles();
     processedFiles = 0;
 
-    //create a for loop to iterate through the parsedFiles array and create a json file for each object
+    // Upload files to server
     for await (const file of parsed) {
+      console.log("Uploading file:", file.filename);
+      console.log("Debug info available:", !!file.debugInfo);
+
       try {
-        updateStatus(`Creating: ${file.filename}.json`, "processing");
-        await createJsonOutput(file.filename, file.data);
-        updateStatus(`✓ Created: ${file.filename}.json`, "success");
+        updateStatus(`Uploading: ${file.filename}`, "success");
+
+        // Upload regular data
+        await fetch("/uploads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folder: file.folder,
+            filename: file.filename,
+            fullPath: file.fullPath,
+            composer: file.composer,
+            concerto: file.concerto,
+            movement: file.movement,
+            data: file.data,
+          }),
+        });
+        updateStatus(`✓ Uploaded: ${file.filename}`, "success");
+
+        // Upload debug data
+        if (file.debugInfo) {
+          await fetch("/uploads-debug", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              folder: file.folder,
+              filename: file.filename,
+              fullPath: file.fullPath,
+              composer: file.composer,
+              concerto: file.concerto,
+              movement: file.movement,
+              debugInfo: file.debugInfo,
+            }),
+          });
+          updateStatus(`✓ Uploaded debug: ${file.filename}_debug`, "success");
+        }
         successCount++;
       } catch (error) {
-        updateStatus(`✗ Failed to create: ${file.filename}.json - ${error.message}`, "error");
+        updateStatus(`✗ Failed to upload: ${file.filename} - ${error.message}`, "error");
         errorCount++;
       }
 
       processedFiles++;
-      updateProgress(processedFiles, totalFiles, "Creating JSON files...");
+      updateProgress(processedFiles, totalFiles, "Uploading JSON files to server...");
     }
 
     showFinalResults();
   } catch (error) {
-    updateStatus(`✗ Failed to create JSON files: ${error.message}`, "error");
-    showError(`Failed to create JSON files: ${error.message}`);
+    updateStatus(`✗ Failed to upload JSON files: ${error.message}`, "error");
+    showError(`Failed to upload JSON files: ${error.message}`);
   } finally {
     hideProgress();
   }
-}
-
-async function createJsonOutput(filename, clickTimes) {
-  // Remove the sample numbers.
-  const fileContents = clickTimes.map((entry) =>
-    Object({
-      time: entry.time,
-      beat: entry.beat,
-    }),
-  );
-  console.log(fileContents);
-
-  // Parse the filename to get the directory structure
-  const pathInfo = parseFilePath(filename);
-
-  // Stolen from https://stackoverflow.com/a/35251739
-  const blob = new Blob([JSON.stringify(fileContents)], {
-    type: "application/json",
-  });
-  const dlink = document.createElement("a");
-
-  // Use the structured filename format: composer_concerto_movement_CLICKDATA_originalname.json
-  const structuredFilename = `${pathInfo.composer}_${pathInfo.concerto}_${pathInfo.movement}_CLICKDATA_${filename}.json`;
-  dlink.download = structuredFilename;
-  dlink.href = window.URL.createObjectURL(blob);
-  dlink.onclick = () => {
-    // revokeObjectURL needs a delay to work properly
-    setTimeout(function () {
-      window.URL.revokeObjectURL(dlink.href);
-    }, 2500);
-  };
-  dlink.click();
-  dlink.remove();
 }
 
 // Test function to verify parseFilePath works correctly

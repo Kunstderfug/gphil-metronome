@@ -9,6 +9,7 @@ const server = express();
 //make static folder
 server.use(express.static("public"));
 server.use(express.static("json"));
+server.use(express.static("json")); // This covers DEBUG folder as well
 server.use(express.json());
 server.use(bodyParser.json());
 server.use(cors());
@@ -28,6 +29,12 @@ server.post("/uploads", async (req, res) => {
   res.send("Uploaded!");
 });
 
+server.post("/uploads-debug", async (req, res) => {
+  const file = req.body;
+  await writeDebugFile(file);
+  res.send("Debug uploaded!");
+});
+
 async function writeFile(file) {
   // create folder based on file name
   if (!fs.existsSync(`json/${file.folder}/CLICKDATA`))
@@ -36,12 +43,37 @@ async function writeFile(file) {
       force: true,
     });
 
+  Fs.writeFile(`json/${file.folder}/CLICKDATA/${file.filename}.json`, JSON.stringify(file.data), (err) => {
+    if (err) throw err;
+    console.log("Saved!");
+  });
+}
+
+async function writeDebugFile(file) {
+  // create folder based on file name
+  if (!fs.existsSync(`json/${file.folder}/DEBUG`))
+    await Fs.mkdir(`json/${file.folder}/DEBUG`, {
+      recursive: true,
+      force: true,
+    });
+
+  const debugContent = {
+    file: {
+      filename: file.filename,
+      folder: file.folder,
+      composer: file.composer,
+      concerto: file.concerto,
+      movement: file.movement,
+    },
+    debugInfo: file.debugInfo,
+  };
+
   Fs.writeFile(
-    `json/${file.folder}/CLICKDATA/${file.filename}.json`,
-    JSON.stringify(file.data),
+    `json/${file.folder}/DEBUG/${file.filename}_debug.json`,
+    JSON.stringify(debugContent, null, 2),
     (err) => {
       if (err) throw err;
-      console.log("Saved!");
+      console.log("Debug saved!");
     },
   );
 }
